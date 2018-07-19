@@ -19,6 +19,11 @@ cfg/
 darknet
 .fuse*
 
+backup*/
+*.weights
+darknet*
+libdarknet*
+
 # OS Generated #
 .DS_Store*
 ehthumbs.db
