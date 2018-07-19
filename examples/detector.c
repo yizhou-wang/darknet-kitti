@@ -625,6 +625,99 @@ void test_detector(char *datacfg, char *cfgfile, char *weightfile, char *filenam
     }
 }
 
+void testseq_detector(char *datacfg, char *cfgfile, char *weightfile, char *filelistname, float thresh, float hier_thresh, char *outfile, int fullscreen)
+{
+    // FILE *file = fopen ( filelistname, "r" );
+    // if ( file != NULL )
+    // {
+    //     char line [ 128 ]; /* or other suitable maximum line size */
+    //     while ( fgets ( line, sizeof line, file ) != NULL ) /* read a line */
+    //     {
+    //         // fputs ( line, stdout ); /* write the line */
+    //         char *filename = strtok(line, "\n");
+    //         test_detector(datacfg, cfgfile, weightfile, filename, thresh, hier_thresh, outfolder, fullscreen);
+    //     }
+    //     fclose ( file );
+    // }
+    // else
+    // {
+    //     perror ( filelistname ); /* why didn't the file open? */
+    // }
+
+
+    list *options = read_data_cfg(datacfg);
+    char *name_list = option_find_str(options, "names", "data/names.list");
+    char **names = get_labels(name_list);
+
+    image **alphabet = load_alphabet();
+    network *net = load_network(cfgfile, weightfile, 0);
+    set_batch_network(net, 1);
+    srand(2222222);
+    double time;
+    char buff[256];
+    // char *input = buff;
+    float nms=.45;
+
+    FILE *file = fopen (filelistname, "r");
+    if(file != NULL)
+    {
+        while(fgets(buff, sizeof buff, file) != NULL ) /* read a line */
+        {
+            // fputs ( line, stdout ); /* write the line */
+            char *input = strtok(buff, "\n");
+            printf("%s", input);
+
+            image im = load_image_color(input,0,0);
+            image sized = letterbox_image(im, net->w, net->h);
+            //image sized = resize_image(im, net->w, net->h);
+            //image sized2 = resize_max(im, net->w);
+            //image sized = crop_image(sized2, -((net->w - sized2.w)/2), -((net->h - sized2.h)/2), net->w, net->h);
+            //resize_network(net, sized.w, sized.h);
+            layer l = net->layers[net->n-1];
+
+
+            float *X = sized.data;
+            time=what_time_is_it_now();
+            network_predict(net, X);
+            printf("%s: Predicted in %f seconds.\n", input, what_time_is_it_now()-time);
+            int nboxes = 0;
+            detection *dets = get_network_boxes(net, im.w, im.h, thresh, hier_thresh, 0, 1, &nboxes);
+            //printf("%d\n", nboxes);
+            //if (nms) do_nms_obj(boxes, probs, l.w*l.h*l.n, l.classes, nms);
+            if (nms) do_nms_sort(dets, nboxes, l.classes, nms);
+            draw_detections(im, dets, nboxes, thresh, names, alphabet, l.classes);
+            free_detections(dets, nboxes);
+            if(outfile){
+                save_image(im, outfile);
+            }
+            else{
+                save_image(im, "predictions");
+#ifdef OPENCV
+                cvNamedWindow("predictions", CV_WINDOW_NORMAL); 
+                if(fullscreen){
+                    cvSetWindowProperty("predictions", CV_WND_PROP_FULLSCREEN, CV_WINDOW_FULLSCREEN);
+                }
+                show_image(im, "predictions");
+                cvWaitKey(100);
+                // cvDestroyAllWindows();
+#endif
+            }
+
+            free_image(im);
+            free_image(sized);
+            // if (filelistname) break;
+        }
+        fclose(file);
+    }
+    else
+    {
+        perror(filelistname); /* why didn't the file open? */
+    }
+
+}
+
+
+
 /*
 void censor_detector(char *datacfg, char *cfgfile, char *weightfile, int cam_index, const char *filename, int class, float thresh, int skip)
 {
@@ -852,4 +945,5 @@ void run_detector(int argc, char **argv)
     }
     //else if(0==strcmp(argv[2], "extract")) extract_detector(datacfg, cfg, weights, cam_index, filename, class, thresh, frame_skip);
     //else if(0==strcmp(argv[2], "censor")) censor_detector(datacfg, cfg, weights, cam_index, filename, class, thresh, frame_skip);
+    else if(0==strcmp(argv[2], "testseq")) testseq_detector(datacfg, cfg, weights, filename, thresh, hier_thresh, outfile, fullscreen);
 }
