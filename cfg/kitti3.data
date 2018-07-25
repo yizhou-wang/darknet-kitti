@@ -1,0 +1,5 @@
+classes= 3
+train  = /mnt/disk1/kitti-dataset/object_2d/kitti_train.txt
+valid  = /mnt/disk1/kitti-dataset/object_2d/kitti_valid.txt
+names = data/kitti3.names
+backup = backup

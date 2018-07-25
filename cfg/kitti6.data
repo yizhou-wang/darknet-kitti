@@ -1,5 +1,5 @@
-classes= 3
+classes= 6
 train  = /mnt/disk1/kitti-dataset/object_2d/kitti_train.txt
 valid  = /mnt/disk1/kitti-dataset/object_2d/kitti_valid.txt
-names = /mnt/disk1/kitti-dataset/object_2d/kitti.3.names
+names = data/kitti6.names
 backup = backup
