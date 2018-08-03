@@ -17,6 +17,7 @@ submission/
 darknet
 .fuse*
 
+archive/
 backup*/
 *.weights
 darknet*
