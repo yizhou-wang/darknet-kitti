@@ -2,6 +2,8 @@
 
 # Darknet #
 
+## Update ##
+
 This repository is forked from [pjreddie/darknet](https://github.com/pjreddie/darknet). This version of darknet is modified to fit KITTI 2D object dataset. The detail of the revision is written at http://yizhouwang.net/blog/2018/07/29/train-yolov2-kitti/.
 
 
