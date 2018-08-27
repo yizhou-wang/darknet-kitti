@@ -255,9 +255,10 @@ void draw_detections(image im, detection *dets, int num, float thresh, char **na
                 printf("%s: %.0f%%\n", names[j], dets[i].prob[j]*100);
             }
         }
-        if(class >= 0){
+        if(class == 4 || class == 5){  // modified for only pedestrians and cyclists
+            class = 4;
             int width = im.h * .006;
-            
+
             /*
                if(0){
                width = pow(prob, 1./2.)*10+1;
