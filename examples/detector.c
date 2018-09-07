@@ -676,7 +676,7 @@ void testseq_detector(char *datacfg, char *cfgfile, char *weightfile, char *file
                 cvSetWindowProperty("predictions", CV_WND_PROP_FULLSCREEN, CV_WINDOW_FULLSCREEN);
             }
             show_image(im, "predictions");
-            cvWaitKey(100);
+            cvWaitKey(50);
             // cvDestroyAllWindows();
 #endif
 
@@ -693,7 +693,82 @@ void testseq_detector(char *datacfg, char *cfgfile, char *weightfile, char *file
 
 }
 
+void twseq_detector(char *datacfg, char *cfgfile, char *weightfile, char *filelistname, float thresh, float hier_thresh, char *outfile, int fullscreen, int show_or_not)
+{
+    list *options = read_data_cfg(datacfg);
+    char *name_list = option_find_str(options, "names", "data/names.list");
+    char **names = get_labels(name_list);
 
+    image **alphabet = load_alphabet();
+    network *net = load_network(cfgfile, weightfile, 0);
+    set_batch_network(net, 1);
+    srand(2222222);
+    double time;
+    char buff[256];
+    float nms=.45;
+
+    FILE *infile = fopen (filelistname, "r");
+    if(!outfile) outfile = "results/output.txt";
+    FILE* outtxt = fopen(outfile, "w");
+    fclose(outtxt);
+    int frmcnt = 0;
+    if(infile != NULL)
+    {
+        while(fgets(buff, sizeof buff, infile) != NULL ) /* read a line */
+        {
+            // fputs ( line, stdout ); /* write the line */
+            char *input = strtok(buff, "\n");
+            printf("%s", input);
+
+            image im = load_image_color(input,0,0);
+            image sized = letterbox_image(im, net->w, net->h);
+            //image sized = resize_image(im, net->w, net->h);
+            //image sized2 = resize_max(im, net->w);
+            //image sized = crop_image(sized2, -((net->w - sized2.w)/2), -((net->h - sized2.h)/2), net->w, net->h);
+            //resize_network(net, sized.w, sized.h);
+            layer l = net->layers[net->n-1];
+
+
+            float *X = sized.data;
+            time=what_time_is_it_now();
+            network_predict(net, X);
+            printf("%s: Predicted in %f seconds.\n", input, what_time_is_it_now()-time);
+            int nboxes = 0;
+            detection *dets = get_network_boxes(net, im.w, im.h, thresh, hier_thresh, 0, 1, &nboxes);
+            //printf("%d\n", nboxes);
+            //if (nms) do_nms_obj(boxes, probs, l.w*l.h*l.n, l.classes, nms);
+            if (nms) do_nms_sort(dets, nboxes, l.classes, nms);
+
+            output_detections(frmcnt, outfile, im, dets, nboxes, thresh, names, alphabet, l.classes);
+
+            if (show_or_not)
+            {
+                draw_detections(im, dets, nboxes, thresh, names, alphabet, l.classes);
+#ifdef OPENCV
+                cvNamedWindow("predictions", CV_WINDOW_NORMAL); 
+                if(fullscreen){
+                    cvSetWindowProperty("predictions", CV_WND_PROP_FULLSCREEN, CV_WINDOW_FULLSCREEN);
+                }
+                show_image(im, "predictions");
+                cvWaitKey(50);
+                // cvDestroyAllWindows();
+#endif
+            }
+
+            free_detections(dets, nboxes);
+
+            free_image(im);
+            free_image(sized);
+            frmcnt++;
+        }
+        fclose(infile);
+    }
+    else
+    {
+        perror(filelistname); /* why didn't the file open? */
+    }
+
+}
 
 /*
 void censor_detector(char *datacfg, char *cfgfile, char *weightfile, int cam_index, const char *filename, int class, float thresh, int skip)
@@ -903,6 +978,7 @@ void run_detector(int argc, char **argv)
     int height = find_int_arg(argc, argv, "-h", 0);
     int fps = find_int_arg(argc, argv, "-fps", 0);
     //int class = find_int_arg(argc, argv, "-class", 0);
+    int show_or_not = find_int_arg(argc, argv, "-show", 0);
 
     char *datacfg = argv[3];
     char *cfg = argv[4];
@@ -923,4 +999,5 @@ void run_detector(int argc, char **argv)
     //else if(0==strcmp(argv[2], "extract")) extract_detector(datacfg, cfg, weights, cam_index, filename, class, thresh, frame_skip);
     //else if(0==strcmp(argv[2], "censor")) censor_detector(datacfg, cfg, weights, cam_index, filename, class, thresh, frame_skip);
     else if(0==strcmp(argv[2], "testseq")) testseq_detector(datacfg, cfg, weights, filename, thresh, hier_thresh, outfile, fullscreen);
+    else if(0==strcmp(argv[2], "twseq")) twseq_detector(datacfg, cfg, weights, filename, thresh, hier_thresh, outfile, fullscreen, show_or_not);
 }

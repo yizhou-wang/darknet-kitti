@@ -732,6 +732,7 @@ data load_all_cifar10();
 box_label *read_boxes(char *filename, int *n);
 box float_to_box(float *f, int stride);
 void draw_detections(image im, detection *dets, int num, float thresh, char **names, image **alphabet, int classes);
+void output_detections(int frmcnt, char *outtxtname, image im, detection *dets, int num, float thresh, char **names, image **alphabet, int classes);
 
 matrix network_predict_data(network *net, data test);
 image **load_alphabet();
